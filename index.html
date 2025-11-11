@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <meta name="description" content="Online Examination System for Limkokwing University of Creative Technology, Lesotho">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="student_login.html">Student</a></li>
+            <li><a href="examiner_login.html">Examiner</a></li>
+            <li><a href="admin_login.html">Administrator</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Welcome to Online Examination System</h2>
+            </div>
+        </section>
+
+        <!-- System Statistics -->
+        <div class="stats" id="systemStats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalStudents">0</span>
+                <span>Registered Students</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalExams">0</span>
+                <span>Exams Conducted</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="passRate">0%</span>
+                <span>Success Rate</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="activeUsers">0</span>
+                <span>Active Users</span>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>For Students</h3>
+                <p>Take exams online from anywhere, view instant results, track your academic progress, and access comprehensive performance analytics.</p>
+                <div class="feature-benefits">
+                    <div class="benefit-item">Online Exam Platform</div>
+                    <div class="benefit-item">Instant Results</div>
+                    <div class="benefit-item">Progress Tracking</div>
+                    <div class="benefit-item">Performance Analytics</div>
+                </div>
+                <a href="student_login.html" class="btn">Student Login</a>
+                <a href="student_register.html" class="btn btn-secondary" style="margin-top: 0.5rem;">Student Registration</a>
+            </div>
+            <div class="feature-card">
+                <h3>For Examiners</h3>
+                <p>Create comprehensive examinations, manage question banks, evaluate submissions efficiently, and generate detailed assessment reports.</p>
+                <div class="feature-benefits">
+                    <div class="benefit-item">Exam Creation Tools</div>
+                    <div class="benefit-item">Question Bank Management</div>
+                    <div class="benefit-item">Automated Evaluation</div>
+                    <div class="benefit-item">Detailed Analytics</div>
+                </div>
+                <a href="examiner_login.html" class="btn">Examiner Login</a>
+            </div>
+            <div class="feature-card">
+                <h3>For Administrators</h3>
+                <p>Manage user accounts, monitor system performance, generate institutional reports, and maintain academic standards across departments.</p>
+                <div class="feature-benefits">
+                    <div class="benefit-item">User Management</div>
+                    <div class="benefit-item">System Monitoring</div>
+                    <div class="benefit-item">Report Generation</div>
+                    <div class="benefit-item">Academic Oversight</div>
+                </div>
+                <a href="admin_login.html" class="btn">Admin Login</a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadSystemStats() {
+            const appData = storage.getData('appData');
+            if (!appData) return;
+
+            const students = appData.users.students || [];
+            const exams = appData.exams || [];
+            const results = appData.results || [];
+            const submissions = appData.submissions || [];
+
+            // Calculate statistics
+            const totalStudents = students.length;
+            const totalExams = exams.length;
+            
+            // Calculate pass rate
+            const passedResults = results.filter(r => r.status === 'passed').length;
+            const passRate = results.length > 0 ? ((passedResults / results.length) * 100).toFixed(1) : 0;
+
+            // Estimate active users (users with activity in last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const activeUsers = new Set([
+                ...students.filter(s => {
+                    const studentResults = results.filter(r => r.studentId === s.id);
+                    const latestResult = studentResults.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0];
+                    return latestResult && new Date(latestResult.submittedAt) > thirtyDaysAgo;
+                }).map(s => s.id),
+                ...(appData.users.examiners || []).map(e => e.id),
+                ...(appData.users.admins || []).map(a => a.id)
+            ]).size;
+
+            // Update statistics display
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('totalExams').textContent = totalExams;
+            document.getElementById('passRate').textContent = passRate + '%';
+            document.getElementById('activeUsers').textContent = activeUsers;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemStats();
+        });
+    </script>
+
+    <style>
+        .features-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .feature-detail {
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #00509e;
+        }
+
+        .feature-detail h4 {
+            color: #00509e;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-detail p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .feature-benefits {
+            margin: 1rem 0;
+        }
+
+        .benefit-item {
+            padding: 0.3rem 0;
+            color: #28a745;
+            font-size: 0.9rem;
+        }
+
+        .how-it-works {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .step-number {
+            background: #00509e;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #00509e;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-content p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .support-info {
+            padding: 1rem;
+            background: #e7f3ff;
+            border-radius: 6px;
+            min-width: 200px;
+        }
+
+        .support-info strong {
+            color: #00509e;
+        }
+
+        @media (max-width: 768px) {
+            .features-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .step-number {
+                align-self: center;
+            }
+            
+            .support-info {
+                min-width: 100%;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="admin_dashboard.html">Dashboard</a></li>
+            <li><a href="manage_users.html">Manage Users</a></li>
+            <li><a href="manage_subjects.html">Manage Subjects</a></li>
+            <li><a href="view_reports.html" class="active">View Reports</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>System Reports</h2>
+                <p>Comprehensive analytics and performance insights</p>
+            </div>
+        </section>
+
+        <div class="stats" id="statsContainer">
+            <!-- Dynamic stats load here -->
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>Performance Overview</h3>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px; margin: 1rem 0;">
+                    <strong>Top Performing Subjects:</strong>
+                    <ul id="topSubjects" style="margin-top: 0.5rem;"></ul>
+                </div>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Areas Needing Improvement:</strong>
+                    <ul id="weakSubjects" style="margin-top: 0.5rem;"></ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>System Usage Statistics</h3>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px; margin: 1rem 0;">
+                    <strong>Monthly Activity:</strong>
+                    <ul id="activityStats" style="margin-top: 0.5rem;"></ul>
+                </div>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px;">
+                    <strong>User Distribution:</strong>
+                    <ul id="userDistribution" style="margin-top: 0.5rem;"></ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Report Generation</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn" onclick="generateReport('performance')">Student Performance Report</button>
+                    <button class="btn btn-secondary" onclick="generateReport('exam')">Exam Statistics Report</button>
+                    <button class="btn btn-secondary" onclick="generateReport('usage')">System Usage Report</button>
+                </div>
+                <div id="lastReport" style="margin-top: 1rem; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Last Report Generated:</strong><br>
+                    <em>None yet</em>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-top: 2rem;">
+            <h3>Recent Exam Results Summary</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Exam Name</th>
+                        <th>Subject</th>
+                        <th>Total Students</th>
+                        <th>Average Score</th>
+                        <th>Pass Rate</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="examResultsTable"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadStats() {
+            const appData = storage.getData('appData');
+            const students = appData.users.students || [];
+            const examiners = appData.users.examiners || [];
+            const admins = appData.users.admins || [];
+            const exams = appData.exams || [];
+            const results = appData.results || [];
+            const submissions = appData.submissions || [];
+            const questions = appData.questions || [];
+
+            const totalStudents = students.length;
+            const totalExaminers = examiners.length;
+            const totalAdmins = admins.length;
+            const totalExams = exams.length;
+            const totalSubmissions = submissions.length;
+            const totalQuestions = questions.length;
+
+            const activeExams = exams.filter(exam => exam.status === 'active').length;
+            const passedResults = results.filter(r => r.status === 'passed').length;
+            const totalResults = results.length;
+            const passRate = totalResults > 0 ? ((passedResults / totalResults) * 100).toFixed(1) : 0;
+
+            // Calculate system uptime based on recent activity
+            const uptime = calculateSystemUptime(submissions);
+
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card"><span class="stat-number">${totalStudents}</span><span>Total Students</span></div>
+                <div class="stat-card"><span class="stat-number">${totalExams}</span><span>Exams Created</span></div>
+                <div class="stat-card"><span class="stat-number">${passRate}%</span><span>Overall Pass Rate</span></div>
+                <div class="stat-card"><span class="stat-number">${uptime}%</span><span>System Uptime</span></div>
+            `;
+        }
+
+        function calculateSystemUptime(submissions) {
+            if (submissions.length === 0) return "100.0";
+            
+            // Calculate uptime based on recent submission activity
+            const now = new Date();
+            const recentSubmissions = submissions.filter(sub => {
+                const subDate = new Date(sub.submittedAt);
+                const diffDays = (now - subDate) / (1000 * 60 * 60 * 24);
+                return diffDays <= 30; // Last 30 days
+            });
+            
+            const activityRate = Math.min(100, (recentSubmissions.length / submissions.length) * 200);
+            return Math.min(100, (95 + (activityRate / 20))).toFixed(1);
+        }
+
+        function loadPerformance() {
+            const results = storage.getAllResults();
+            const exams = storage.getExams();
+            
+            if (results.length === 0) {
+                document.getElementById('topSubjects').innerHTML = '<li>No performance data available</li>';
+                document.getElementById('weakSubjects').innerHTML = '<li>No performance data available</li>';
+                return;
+            }
+
+            // Calculate subject performance
+            const subjectPerformance = {};
+            
+            results.forEach(result => {
+                const exam = exams.find(e => e.id === result.examId);
+                if (exam && exam.subject) {
+                    if (!subjectPerformance[exam.subject]) {
+                        subjectPerformance[exam.subject] = { totalScore: 0, count: 0 };
+                    }
+                    subjectPerformance[exam.subject].totalScore += result.percentage;
+                    subjectPerformance[exam.subject].count++;
+                }
+            });
+
+            // Calculate average for each subject
+            const subjectAverages = [];
+            for (const [subject, data] of Object.entries(subjectPerformance)) {
+                const average = data.totalScore / data.count;
+                subjectAverages.push({ subject, average });
+            }
+
+            // Sort by average score
+            subjectAverages.sort((a, b) => b.average - a.average);
+
+            // Get top 3 and bottom 3 subjects
+            const topSubjects = subjectAverages.slice(0, 3);
+            const weakSubjects = subjectAverages.slice(-3).reverse();
+
+            document.getElementById('topSubjects').innerHTML = topSubjects.length > 0 
+                ? topSubjects.map(s => `<li>${s.subject.replace('_', ' ').toUpperCase()} - ${s.average.toFixed(1)}% average</li>`).join('')
+                : '<li>No subject data available</li>';
+
+            document.getElementById('weakSubjects').innerHTML = weakSubjects.length > 0 
+                ? weakSubjects.map(s => `<li>${s.subject.replace('_', ' ').toUpperCase()} - ${s.average.toFixed(1)}% average</li>`).join('')
+                : '<li>No subject data available</li>';
+        }
+
+        function loadActivity() {
+            const appData = storage.getData('appData');
+            const students = appData.users.students || [];
+            const exams = appData.exams || [];
+            const submissions = appData.submissions || [];
+            const results = appData.results || [];
+
+            // Calculate active students (students with submissions in last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const activeStudents = new Set(
+                submissions
+                    .filter(sub => new Date(sub.submittedAt) > thirtyDaysAgo)
+                    .map(sub => sub.studentId)
+            ).size;
+
+            const examsTaken = submissions.length;
+            const newRegistrations = students.filter(student => {
+                const regDate = new Date(student.registrationDate || new Date());
+                return (new Date() - regDate) / (1000 * 60 * 60 * 24) <= 30;
+            }).length;
+
+            document.getElementById('activityStats').innerHTML = `
+                <li>Active Students: ${activeStudents}</li>
+                <li>Exams Taken: ${examsTaken}</li>
+                <li>New Registrations (30 days): ${newRegistrations}</li>
+                <li>Total Questions: ${storage.getQuestions().length}</li>
+            `;
+
+            // User distribution
+            const userStats = storage.getSystemStats();
+            document.getElementById('userDistribution').innerHTML = `
+                <li>Students: ${userStats.totalStudents}</li>
+                <li>Examiners: ${userStats.totalExaminers}</li>
+                <li>Administrators: ${userStats.totalAdmins}</li>
+                <li>Total Users: ${userStats.totalStudents + userStats.totalExaminers + userStats.totalAdmins}</li>
+            `;
+        }
+
+        function loadResultsTable() {
+            const results = storage.getAllResults();
+            const exams = storage.getExams();
+            const students = storage.getData('appData').users.students || [];
+            const tbody = document.getElementById('examResultsTable');
+            tbody.innerHTML = '';
+
+            if (results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">No exam results available.</td></tr>`;
+                return;
+            }
+
+            // Group results by exam
+            const examResults = {};
+            results.forEach(result => {
+                if (!examResults[result.examId]) {
+                    examResults[result.examId] = [];
+                }
+                examResults[result.examId].push(result);
+            });
+
+            // Calculate statistics for each exam
+            const examStats = [];
+            for (const [examId, examResultsArray] of Object.entries(examResults)) {
+                const exam = exams.find(e => e.id === examId);
+                if (exam) {
+                    const totalStudents = examResultsArray.length;
+                    const averageScore = examResultsArray.reduce((sum, r) => sum + r.percentage, 0) / totalStudents;
+                    const passRate = (examResultsArray.filter(r => r.status === 'passed').length / totalStudents) * 100;
+                    const latestDate = new Date(Math.max(...examResultsArray.map(r => new Date(r.submittedAt))));
+                    
+                    examStats.push({
+                        examName: exam.title,
+                        subject: exam.subject,
+                        totalStudents,
+                        averageScore,
+                        passRate,
+                        latestDate
+                    });
+                }
+            }
+
+            // Sort by latest date and take top 10
+            examStats.sort((a, b) => b.latestDate - a.latestDate);
+            const recentExams = examStats.slice(0, 10);
+
+            if (recentExams.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">No exam results available.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = recentExams.map(stat => `
+                <tr>
+                    <td><strong>${stat.examName}</strong></td>
+                    <td>${stat.subject ? stat.subject.replace('_', ' ').toUpperCase() : 'N/A'}</td>
+                    <td>${stat.totalStudents}</td>
+                    <td><strong>${stat.averageScore.toFixed(1)}%</strong></td>
+                    <td><span style="color: ${stat.passRate >= 50 ? '#28a745' : '#dc3545'}; font-weight: bold;">${stat.passRate.toFixed(1)}%</span></td>
+                    <td>${stat.latestDate.toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function generateReport(type) {
+            const appData = storage.getData('appData');
+            const reportNames = {
+                performance: "Student Performance Report",
+                exam: "Exam Statistics Report",
+                usage: "System Usage Report"
+            };
+            const name = reportNames[type] || "General Report";
+            const date = new Date().toLocaleString();
+
+            // Generate report data based on type
+            let reportData = "";
+            
+            switch(type) {
+                case 'performance':
+                    const results = storage.getAllResults();
+                    const students = appData.users.students || [];
+                    reportData = `Total Students: ${students.length}\nTotal Results: ${results.length}\nOverall Pass Rate: ${(results.filter(r => r.status === 'passed').length / results.length * 100).toFixed(1)}%`;
+                    break;
+                    
+                case 'exam':
+                    const exams = storage.getExams();
+                    const submissions = storage.getSubmissions();
+                    reportData = `Total Exams: ${exams.length}\nActive Exams: ${exams.filter(e => e.status === 'active').length}\nTotal Submissions: ${submissions.length}`;
+                    break;
+                    
+                case 'usage':
+                    const stats = storage.getSystemStats();
+                    reportData = `Total Users: ${stats.totalStudents + stats.totalExaminers + stats.totalAdmins}\nStudents: ${stats.totalStudents}\nExaminers: ${stats.totalExaminers}\nAdmins: ${stats.totalAdmins}`;
+                    break;
+            }
+
+            document.getElementById('lastReport').innerHTML = `
+                <strong>Last Report Generated:</strong><br>
+                ${name}<br>
+                Date: ${date}<br>
+                <small style="color: #666;">${reportData.replace(/\n/g, '<br>')}</small>
+            `;
+            
+            showAlert(`${name} generated successfully!`, 'success');
+            
+            // Simulate download (in real application, this would generate a file)
+            console.log(`Report: ${name}`, reportData);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check admin authentication
+            if (!redirectIfNotAuthenticated('admin', 'admin_login.html')) {
+                return;
+            }
+            
+            loadStats();
+            loadPerformance();
+            loadActivity();
+            loadResultsTable();
+        });
+    </script>
+</body>
+</html>

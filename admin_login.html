@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="student_login.html">Student</a></li>
+            <li><a href="examiner_login.html">Examiner</a></li>
+            <li><a href="admin_login.html" class="active">Administrator</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Administrator Portal</h2>
+                <p>Complete system management and oversight capabilities</p>
+            </div>
+        </section>
+
+        <div class="form-container">
+            <h2>Administrator Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Admin ID</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your Admin ID">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn">Access Admin Dashboard</button>
+            </form>
+            
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            console.log('Login attempt:', username, password); // Debug log
+            
+            const user = storage.findUser(username, password);
+            
+            if (user) {
+                const userType = storage.getUserType(username);
+                console.log('User found, type:', userType); // Debug log
+                
+                if (userType === 'admin') {
+                    storage.setData('currentUser', user);
+                    showAlert('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'admin_dashboard.html';
+                    }, 1000);
+                } else {
+                    showAlert('Access denied. Admin privileges required.', 'error');
+                }
+            } else {
+                showAlert('Invalid Admin ID or password. Please use ADM001 / admin123', 'error');
+            }
+        });
+
+        // Debug: Check if storage is working
+        document.addEventListener('DOMContentLoaded', function() {
+            const appData = storage.getData('appData');
+            console.log('AppData loaded:', appData);
+            if (appData && appData.users) {
+                console.log('Admin users:', appData.users.admins);
+            }
+        });
+    </script>
+</body>
+</html>

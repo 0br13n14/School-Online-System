@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="available_exams.html">Available Exams</a></li>
+            <li><a href="exam_results.html">Results</a></li>
+            <li><a href="student_profile.html">Profile</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2 id="welcomeMessage">Welcome, Student!</h2>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="availableExams">0</span>
+                <span>Available Exams</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="completedExams">0</span>
+                <span>Completed Exams</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="averageScore">0%</span>
+                <span>Average Score</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="pendingExams">0</span>
+                <span>Pending Exams</span>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>Available Exams</h3>
+                <div id="availableExamsList">
+                    <p>Loading available exams...</p>
+                </div>
+                <a href="available_exams.html" class="btn">View All Exams</a>
+            </div>
+
+            <div class="card">
+                <h3>Recent Results</h3>
+                <div id="recentResultsList">
+                    <p>Loading your results...</p>
+                </div>
+                <a href="exam_results.html" class="btn btn-secondary">View All Results</a>
+            </div>
+
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="available_exams.html" class="btn">Take Exam</a>
+                    <a href="exam_results.html" class="btn btn-secondary">View Results</a>
+                    <a href="student_profile.html" class="btn btn-secondary">Update Profile</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadDashboard() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser || storage.getUserType(currentUser.id) !== 'student') {
+                window.location.href = 'student_login.html';
+                return;
+            }
+
+            // Update welcome message
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${currentUser.fullName || currentUser.id}!`;
+
+            // Load data
+            const exams = storage.getExams();
+            const results = storage.getStudentResults(currentUser.id);
+            const availableExams = exams.filter(exam => 
+                !results.some(result => result.examId === exam.id) && exam.status === 'active'
+            );
+
+            // Update stats with real data
+            document.getElementById('availableExams').textContent = availableExams.length;
+            document.getElementById('completedExams').textContent = results.length;
+            
+            const averageScore = results.length > 0 ? 
+                (results.reduce((sum, result) => sum + result.percentage, 0) / results.length).toFixed(1) : 0;
+            document.getElementById('averageScore').textContent = averageScore + '%';
+            
+            document.getElementById('pendingExams').textContent = availableExams.length;
+
+            // Update available exams list
+            const availableList = document.getElementById('availableExamsList');
+            if (availableExams.length > 0) {
+                availableList.innerHTML = availableExams.slice(0, 3).map(exam => `
+                    <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <strong>${exam.title}</strong><br>
+                        <small>Duration: ${exam.duration} mins • Marks: ${exam.totalMarks}</small>
+                        <div style="margin-top: 0.5rem;">
+                            <a href="take_exam.html?examId=${exam.id}" class="btn" style="padding: 0.25rem 0.5rem;">Start Exam</a>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                availableList.innerHTML = '<p>No available exams at the moment.</p>';
+            }
+
+            // Update recent results
+            const recentList = document.getElementById('recentResultsList');
+            if (results.length > 0) {
+                recentList.innerHTML = results.slice(-3).reverse().map(result => {
+                    const exam = exams.find(e => e.id === result.examId);
+                    return `
+                        <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <strong>${exam ? exam.title : 'Unknown Exam'}</strong><br>
+                            <small>Score: ${result.percentage}% • ${result.status}</small>
+                            <div style="margin-top: 0.5rem;">
+                                <a href="result_details.html?resultId=${result.id}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem;">View Details</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                recentList.innerHTML = '<p>No exam results yet.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>

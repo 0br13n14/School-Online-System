@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="student_login.html" class="active">Student</a></li>
+            <li><a href="examiner_login.html">Examiner</a></li>
+            <li><a href="admin_login.html">Administrator</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Student Portal</h2>
+            </div>
+        </section>
+
+        <div class="form-container">
+            <h2>Student Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Student ID</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your Student ID">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem;">
+                <a href="student_register.html" style="color: #00509e;">Register here</a> | 
+                <a href="forgot_password.html" style="color: #6c757d;">Forgot Password?</a>
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Validate inputs
+            if (!username || !password) {
+                showAlert('Please enter both Student ID and password', 'error');
+                return;
+            }
+            
+            const user = storage.findUser(username, password);
+            
+            if (user) {
+                const userType = storage.getUserType(username);
+                
+                if (userType === 'student') {
+                    // Store complete user object in currentUser
+                    storage.setData('currentUser', user);
+                    
+                    // Verify storage was successful
+                    const storedUser = storage.getData('currentUser');
+                    if (storedUser && storedUser.id === username) {
+                        showAlert('Login successful! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'student_dashboard.html';
+                        }, 1000);
+                    } else {
+                        showAlert('Login failed: Could not save session', 'error');
+                    }
+                } else {
+                    showAlert('Access denied. Student account required.', 'error');
+                }
+            } else {
+                showAlert('Invalid Student ID or password', 'error');
+            }
+        });
+
+        // Debug: Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = storage.getData('currentUser');
+            if (currentUser) {
+                const userType = storage.getUserType(currentUser.id);
+                if (userType === 'student') {
+                    console.log('Student already logged in:', currentUser.id);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

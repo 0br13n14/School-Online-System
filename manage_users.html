@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="admin_dashboard.html">Dashboard</a></li>
+            <li><a href="manage_users.html" class="active">Manage Users</a></li>
+            <li><a href="manage_subjects.html">Manage Subjects</a></li>
+            <li><a href="view_reports.html">View Reports</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>User Management</h2>
+                <p>Comprehensive control over all system users and their permissions</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalStudents">0</span>
+                <span>Total Students</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalExaminers">0</span>
+                <span>Examiners</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalAdmins">0</span>
+                <span>Administrators</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="activeUsers">0</span>
+                <span>Active Today</span>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 1200px; margin-left: auto; margin-right: auto; padding: 0 1rem;">
+            <div>
+                <button class="btn" onclick="showAddUserForm()">Add New User</button>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" id="searchUsers" placeholder="Search users..." style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; width: 300px;">
+                <select id="filterRole" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">All Roles</option>
+                    <option value="student">Students</option>
+                    <option value="examiner">Examiners</option>
+                    <option value="admin">Administrators</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Course/Department</th>
+                        <th>Status</th>
+                        <th>Last Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem;">
+                            <p>Loading user data...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add User Form -->
+        <div id="addUserForm" class="form-container" style="display: none; margin-top: 2rem;">
+            <h3>Add New User</h3>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userRole">User Role</label>
+                    <select id="userRole" name="userRole" required onchange="toggleUserFields()">
+                        <option value="">Select Role</option>
+                        <option value="student">Student</option>
+                        <option value="examiner">Examiner</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userFullName">Full Name</label>
+                    <input type="text" id="userFullName" name="userFullName" required placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label for="userId">User ID</label>
+                    <input type="text" id="userId" name="userId" required placeholder="Enter unique user ID">
+                </div>
+                <div class="form-group">
+                    <label for="userEmail">Email Address</label>
+                    <input type="email" id="userEmail" name="userEmail" required placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">Password</label>
+                    <input type="password" id="userPassword" name="userPassword" required placeholder="Set initial password">
+                </div>
+                <div class="form-group" id="courseField" style="display: none;">
+                    <label for="userCourse">Course Program</label>
+                    <input type="text" id="userCourse" name="userCourse" placeholder="Enter course program">
+                </div>
+                <div class="form-group" id="departmentField" style="display: none;">
+                    <label for="userDepartment">Department</label>
+                    <input type="text" id="userDepartment" name="userDepartment" placeholder="Enter department">
+                </div>
+                <div class="form-group" id="semesterField" style="display: none;">
+                    <label for="userSemester">Semester</label>
+                    <input type="text" id="userSemester" name="userSemester" placeholder="Enter semester (e.g., Y1S1)">
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn">Create User Account</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideAddUserForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadUsers() {
+            const appData = storage.getData('appData');
+            const tableBody = document.getElementById('usersTableBody');
+
+            // Update stats
+            document.getElementById('totalStudents').textContent = appData.users.students.length;
+            document.getElementById('totalExaminers').textContent = appData.users.examiners.length;
+            document.getElementById('totalAdmins').textContent = appData.users.admins.length;
+            document.getElementById('activeUsers').textContent = Math.floor(Math.random()*50)+100;
+
+            const allUsers = [
+                ...appData.users.students.map(u => ({...u, role: 'Student', roleType: 'student'})),
+                ...appData.users.examiners.map(u => ({...u, role: 'Examiner', roleType: 'examiner'})),
+                ...appData.users.admins.map(u => ({...u, role: 'Administrator', roleType: 'admin'}))
+            ];
+
+            // Apply filters
+            const searchText = document.getElementById('searchUsers').value.toLowerCase();
+            const roleFilter = document.getElementById('filterRole').value;
+            
+            const filteredUsers = allUsers.filter(user => 
+                (!roleFilter || user.roleType === roleFilter) &&
+                (!searchText || 
+                 user.id.toLowerCase().includes(searchText) || 
+                 user.fullName.toLowerCase().includes(searchText) ||
+                 user.email.toLowerCase().includes(searchText))
+            );
+
+            if (filteredUsers.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No users found.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = filteredUsers.map(user => {
+                const status = Math.random()>0.2?'Active':'Inactive';
+                const statusClass = status==='Active'?'status-active':'status-inactive';
+                return `
+                    <tr>
+                        <td><strong>${user.id}</strong></td>
+                        <td>${user.fullName}</td>
+                        <td>${user.email}</td>
+                        <td><span class="role-badge role-${user.roleType}">${user.role}</span></td>
+                        <td>${user.course?user.course.toUpperCase():(user.department||'N/A')}</td>
+                        <td><span class="${statusClass}">${status}</span></td>
+                        <td>${new Date().toLocaleDateString()}</td>
+                        <td>
+                            <div style="display:flex;gap:0.25rem;">
+                                <button class="btn" style="padding:0.25rem 0.5rem;" onclick="editUser('${user.id}')">Edit</button>
+                                <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;" onclick="deleteUser('${user.id}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showAddUserForm() { 
+            document.getElementById('addUserForm').style.display='block'; 
+        }
+        
+        function hideAddUserForm() { 
+            document.getElementById('addUserForm').style.display='none'; 
+            document.getElementById('userForm').reset();
+            toggleUserFields(); // Reset field visibility
+        }
+        
+        function toggleUserFields() { 
+            const role = document.getElementById('userRole').value; 
+            document.getElementById('courseField').style.display = role==='student'?'block':'none'; 
+            document.getElementById('departmentField').style.display = role==='examiner'?'block':'none';
+            document.getElementById('semesterField').style.display = role==='student'?'block':'none';
+        }
+        
+        function editUser(userId){ 
+            showAlert('Edit functionality for user: ' + userId, 'info');
+        }
+        
+        function deleteUser(userId){ 
+            if(confirm('Are you sure you want to delete this user?')) { 
+                const appData = storage.getData('appData');
+                let deleted = false;
+                
+                ['students','examiners','admins'].forEach(role => {
+                    const initialLength = appData.users[role].length;
+                    appData.users[role] = appData.users[role].filter(u => u.id !== userId);
+                    if (appData.users[role].length < initialLength) {
+                        deleted = true;
+                    }
+                });
+                
+                if (deleted) {
+                    storage.setData('appData', appData);
+                    loadUsers();
+                    showAlert('User deleted successfully!', 'success');
+                } else {
+                    showAlert('User not found!', 'error');
+                }
+            }
+        }
+
+        document.getElementById('userForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            const formData = new FormData(this);
+            const user = {
+                id: formData.get('userId'),
+                password: formData.get('userPassword'),
+                fullName: formData.get('userFullName'),
+                email: formData.get('userEmail'),
+                registrationDate: new Date().toISOString()
+            };
+            const role = formData.get('userRole');
+            
+            if(role==='student'){
+                user.course = formData.get('userCourse');
+                user.semester = formData.get('userSemester') || 'Y1S1';
+            } else if(role==='examiner'){
+                user.department = formData.get('userDepartment');
+            }
+            
+            if(storage.addUser(user, role+'s')){ 
+                showAlert('User added successfully!', 'success');
+                this.reset(); 
+                hideAddUserForm(); 
+                loadUsers();
+            } else {
+                showAlert('Failed to add user! User ID might already exist.', 'error');
+            }
+        });
+
+        // Add event listeners for filtering
+        document.getElementById('searchUsers').addEventListener('input', loadUsers);
+        document.getElementById('filterRole').addEventListener('change', loadUsers);
+
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+
+    <style>
+        .role-badge{
+            padding:0.25rem 0.75rem;
+            border-radius:15px;
+            font-size:0.8rem;
+            font-weight:bold;
+            text-transform:uppercase;
+        }
+        .role-student{
+            background:#e7f3ff;
+            color:#00509e;
+            border:1px solid #00509e;
+        }
+        .role-examiner{
+            background:#fff3cd;
+            color:#856404;
+            border:1px solid #ffc107;
+        }
+        .role-admin{
+            background:#f8d7da;
+            color:#721c24;
+            border:1px solid #dc3545;
+        }
+        .status-active{
+            color:#28a745;
+            font-weight:bold;
+        }
+        .status-inactive{
+            color:#6c757d;
+            font-weight:bold;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="examiner_dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="create_exam.html">Create Exam</a></li>
+            <li><a href="manage_questions.html">Manage Questions</a></li>
+            <li><a href="view_submissions.html">View Submissions</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Examiner Dashboard</h2>
+                <p>Create, manage, and evaluate examinations with powerful tools</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="activeExams">0</span>
+                <span>Active Exams</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalSubmissions">0</span>
+                <span>Total Submissions</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="pendingEvaluations">0</span>
+                <span>Pending Evaluations</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalQuestions">0</span>
+                <span>Questions in Bank</span>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>Recent Exams</h3>
+                <div id="recentExamsList">
+                    <p>Loading your exams...</p>
+                </div>
+                <a href="create_exam.html" class="btn">Create New Exam</a>
+            </div>
+
+            <div class="card">
+                <h3>Pending Actions</h3>
+                <div id="pendingActionsList">
+                    <p>Loading pending actions...</p>
+                </div>
+                <a href="view_submissions.html" class="btn btn-secondary">View All Submissions</a>
+            </div>
+
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="create_exam.html" class="btn">Create New Exam</a>
+                    <a href="manage_questions.html" class="btn btn-secondary">Manage Questions</a>
+                    <a href="view_submissions.html" class="btn btn-secondary">View Submissions</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadExaminerData() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser) {
+                window.location.href = 'examiner_login.html';
+                return;
+            }
+
+            const appData = storage.getData('appData');
+            const exams = appData.exams || [];
+            const submissions = appData.submissions || [];
+            const questions = appData.questions || [];
+
+            // Update stats with real data
+            const activeExams = exams.filter(e => e.status === "active").length;
+            const pendingEvaluations = submissions.filter(s => s.status === "submitted").length;
+
+            document.getElementById("activeExams").textContent = activeExams;
+            document.getElementById("totalSubmissions").textContent = submissions.length;
+            document.getElementById("pendingEvaluations").textContent = pendingEvaluations;
+            document.getElementById("totalQuestions").textContent = questions.length;
+
+            // Recent exams
+            const recentExams = exams.slice(-3).reverse();
+            const recentList = document.getElementById("recentExamsList");
+            recentList.innerHTML = recentExams.length
+                ? recentExams.map(exam => `
+                    <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <strong>${exam.title}</strong><br>
+                        <small>Subject: ${exam.subject} • Status: ${exam.status}</small>
+                    </div>`).join("")
+                : "<p>No exams created yet. Create your first exam!</p>";
+
+            // Pending actions
+            const pendingList = document.getElementById("pendingActionsList");
+            pendingList.innerHTML = pendingEvaluations > 0
+                ? `<div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>${pendingEvaluations} submissions need review</strong><br>
+                    <small>Require manual evaluation and grading</small>
+                  </div>`
+                : "<p>No pending actions. All caught up!</p>";
+        }
+
+        document.addEventListener('DOMContentLoaded', loadExaminerData);
+    </script>
+</body>
+</html>

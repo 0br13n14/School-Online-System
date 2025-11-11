@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="admin_dashboard.html">Dashboard</a></li>
+            <li><a href="manage_users.html">Manage Users</a></li>
+            <li><a href="manage_subjects.html" class="active">Manage Subjects</a></li>
+            <li><a href="view_reports.html">View Reports</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Subject Management</h2>
+                <p>Organize and manage academic subjects and course offerings</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalSubjects">0</span>
+                <span>Total Subjects</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="activeSubjects">0</span>
+                <span>Active Subjects</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalDepartments">0</span>
+                <span>Departments</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="examsCreated">0</span>
+                <span>Exams Created</span>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 1200px; margin-left: auto; margin-right: auto; padding: 0 1rem;">
+            <div>
+                <button class="btn" onclick="showAddSubjectForm()">Add New Subject</button>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" id="searchSubjects" placeholder="Search subjects..." style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; width: 300px;">
+                <input type="text" id="filterDepartment" placeholder="Filter by department..." style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; width: 250px;">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject Code</th>
+                        <th>Subject Name</th>
+                        <th>Department</th>
+                        <th>Credits</th>
+                        <th>Exams</th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="subjectsTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem;">
+                            <p>Loading subject data...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add/Edit Subject Form -->
+        <div id="addSubjectForm" class="form-container" style="display: none; margin-top: 2rem; max-width: 600px;">
+            <h3 id="formTitle">Add New Subject</h3>
+            <form id="subjectForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="subjectCode">Subject Code</label>
+                        <input type="text" id="subjectCode" name="subjectCode" required placeholder="e.g., WD101">
+                    </div>
+                    <div class="form-group">
+                        <label for="subjectCredits">Credits</label>
+                        <input type="number" id="subjectCredits" name="subjectCredits" min="1" max="6" required placeholder="e.g., 3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="subjectName">Subject Name</label>
+                    <input type="text" id="subjectName" name="subjectName" required placeholder="Enter subject name">
+                </div>
+                <div class="form-group">
+                    <label for="subjectDepartment">Department</label>
+                    <input type="text" id="subjectDepartment" name="subjectDepartment" required placeholder="Enter department name">
+                </div>
+                <div class="form-group">
+                    <label for="subjectDescription">Description</label>
+                    <textarea id="subjectDescription" name="subjectDescription" rows="3" placeholder="Brief description of the subject"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn" id="submitButton">Add Subject</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideAddSubjectForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let currentEditingSubject = null;
+
+        function loadSubjects() {
+            const subjects = storage.getSubjects() || [];
+            const exams = storage.getExams() || [];
+            const tableBody = document.getElementById('subjectsTableBody');
+
+            const searchText = document.getElementById('searchSubjects').value.toLowerCase();
+            const deptFilter = document.getElementById('filterDepartment').value.toLowerCase();
+
+            const filtered = subjects.filter(s =>
+                (!deptFilter || s.department.toLowerCase().includes(deptFilter)) &&
+                (!searchText || 
+                 s.name.toLowerCase().includes(searchText) || 
+                 s.code.toLowerCase().includes(searchText) ||
+                 s.description.toLowerCase().includes(searchText))
+            );
+
+            // Calculate real statistics
+            const totalSubjects = subjects.length;
+            const activeSubjects = subjects.filter(s => s.status === 'active').length;
+            
+            // Count unique departments
+            const uniqueDepartments = new Set(subjects.map(s => s.department)).size;
+            
+            // Count exams per subject
+            const examCounts = {};
+            exams.forEach(exam => {
+                if (exam.subject) {
+                    examCounts[exam.subject] = (examCounts[exam.subject] || 0) + 1;
+                }
+            });
+
+            document.getElementById('totalSubjects').textContent = totalSubjects;
+            document.getElementById('activeSubjects').textContent = activeSubjects;
+            document.getElementById('totalDepartments').textContent = uniqueDepartments;
+            document.getElementById('examsCreated').textContent = exams.length;
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No subjects found.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = filtered.map(sub => {
+                const examCount = examCounts[sub.code] || 0;
+                const statusClass = sub.status === 'active' ? 'status-active' : 'status-inactive';
+                
+                return `
+                    <tr>
+                        <td><strong>${sub.code}</strong></td>
+                        <td>
+                            <div style="font-weight:bold;color:#00509e;">${sub.name}</div>
+                            <div style="font-size:0.8rem;color:#666;">${sub.description || 'No description available'}</div>
+                        </td>
+                        <td>
+                            <span style="font-weight:bold;color:#00509e;">${sub.department}</span>
+                        </td>
+                        <td><strong>${sub.credits}</strong></td>
+                        <td>
+                            <span style="font-weight:bold;color:${examCount > 0 ? '#28a745' : '#6c757d'};">${examCount}</span>
+                        </td>
+                        <td><span class="${statusClass}">${sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}</span></td>
+                        <td>${sub.updatedAt ? new Date(sub.updatedAt).toLocaleDateString() : new Date(sub.createdAt).toLocaleDateString()}</td>
+                        <td>
+                            <div style="display:flex;gap:0.25rem;">
+                                <button class="btn" onclick="editSubject('${sub.code}')">Edit</button>
+                                <button class="btn btn-secondary" onclick="deleteSubject('${sub.code}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showAddSubjectForm() { 
+            currentEditingSubject = null;
+            document.getElementById('formTitle').textContent = 'Add New Subject';
+            document.getElementById('submitButton').textContent = 'Add Subject';
+            document.getElementById('addSubjectForm').style.display = 'block'; 
+            document.getElementById('subjectCode').disabled = false;
+        }
+        
+        function hideAddSubjectForm() { 
+            document.getElementById('addSubjectForm').style.display = 'none'; 
+            document.getElementById('subjectForm').reset();
+            currentEditingSubject = null;
+        }
+
+        function editSubject(code) {
+            const subjects = storage.getSubjects();
+            const subject = subjects.find(s => s.code === code);
+            if (!subject) {
+                showAlert('Subject not found!', 'error');
+                return;
+            }
+            
+            currentEditingSubject = subject;
+            showAddSubjectForm();
+            document.getElementById('formTitle').textContent = 'Edit Subject';
+            document.getElementById('submitButton').textContent = 'Update Subject';
+            
+            const form = document.getElementById('subjectForm');
+            form.subjectCode.value = subject.code;
+            form.subjectCode.disabled = true; // Don't allow editing subject code
+            form.subjectName.value = subject.name;
+            form.subjectDepartment.value = subject.department;
+            form.subjectCredits.value = subject.credits;
+            form.subjectDescription.value = subject.description || '';
+        }
+
+        function deleteSubject(code) {
+            if (!confirm('Are you sure you want to delete this subject? This action cannot be undone.')) return;
+            
+            // Check if subject has exams
+            const exams = storage.getExams();
+            const subjectExams = exams.filter(exam => exam.subject === code);
+            
+            if (subjectExams.length > 0) {
+                showAlert(`Cannot delete subject. There are ${subjectExams.length} exam(s) associated with this subject.`, 'error');
+                return;
+            }
+            
+            const appData = storage.getData('appData');
+            const initialLength = appData.subjects.length;
+            appData.subjects = appData.subjects.filter(s => s.code !== code);
+            
+            if (appData.subjects.length < initialLength) {
+                storage.setData('appData', appData);
+                loadSubjects();
+                showAlert('Subject deleted successfully!', 'success');
+            } else {
+                showAlert('Subject not found!', 'error');
+            }
+        }
+
+        document.getElementById('subjectForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            const subjectData = {
+                code: formData.get('subjectCode').toUpperCase(),
+                name: formData.get('subjectName'),
+                department: formData.get('subjectDepartment'),
+                credits: parseInt(formData.get('subjectCredits')),
+                description: formData.get('subjectDescription'),
+                status: 'active',
+                updatedAt: new Date().toISOString()
+            };
+
+            // Validation
+            if (!subjectData.code || !subjectData.name || !subjectData.department || !subjectData.credits) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (subjectData.credits < 1 || subjectData.credits > 6) {
+                showAlert('Credits must be between 1 and 6', 'error');
+                return;
+            }
+
+            const subjects = storage.getSubjects();
+            
+            if (currentEditingSubject) {
+                // Editing existing subject
+                const subjectIndex = subjects.findIndex(s => s.code === currentEditingSubject.code);
+                if (subjectIndex !== -1) {
+                    // Preserve creation date
+                    subjectData.createdAt = subjects[subjectIndex].createdAt || new Date().toISOString();
+                    subjects[subjectIndex] = subjectData;
+                    
+                    const appData = storage.getData('appData');
+                    appData.subjects = subjects;
+                    storage.setData('appData', appData);
+                    
+                    hideAddSubjectForm();
+                    loadSubjects();
+                    showAlert('Subject updated successfully!', 'success');
+                }
+            } else {
+                // Adding new subject
+                // Check if subject code already exists
+                const existingSubject = subjects.find(s => s.code === subjectData.code);
+                if (existingSubject) {
+                    showAlert('Subject code already exists! Please use a different code.', 'error');
+                    return;
+                }
+                
+                subjectData.createdAt = new Date().toISOString();
+                
+                if (storage.addSubject(subjectData)) {
+                    showAlert('Subject added successfully!', 'success');
+                    hideAddSubjectForm();
+                    loadSubjects();
+                } else {
+                    showAlert('Failed to add subject!', 'error');
+                }
+            }
+        });
+
+        // Auto-format subject code to uppercase
+        document.getElementById('subjectCode').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Add event listeners for filtering
+        document.getElementById('searchSubjects').addEventListener('input', loadSubjects);
+        document.getElementById('filterDepartment').addEventListener('input', loadSubjects);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check admin authentication
+            if (!redirectIfNotAuthenticated('admin', 'admin_login.html')) {
+                return;
+            }
+            loadSubjects();
+        });
+    </script>
+
+    <style>
+        .status-active {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-inactive {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</body>
+</html>

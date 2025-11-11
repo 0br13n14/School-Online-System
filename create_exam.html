@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="examiner_dashboard.html">Dashboard</a></li>
+            <li><a href="create_exam.html" class="active">Create Exam</a></li>
+            <li><a href="manage_questions.html">Manage Questions</a></li>
+            <li><a href="view_submissions.html">View Submissions</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Create New Examination</h2>
+                <p>Design comprehensive assessments with our powerful exam creation tools</p>
+            </div>
+        </section>
+
+        <div class="form-container" style="max-width: 800px;">
+            <h2>Exam Details</h2>
+            <form id="createExamForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="examTitle">Exam Title</label>
+                        <input type="text" id="examTitle" name="examTitle" required placeholder="Enter exam title">
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject Area</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select Subject</option>
+                            <option value="web_design">Web Design & Development</option>
+                            <option value="programming">Programming</option>
+                            <option value="database">Database Management</option>
+                            <option value="mathematics">Mathematics</option>
+                            <option value="english">English Language</option>
+                            <option value="science">Computer Science</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Exam Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Provide a brief description of the exam content and objectives"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" name="duration" min="1" max="180" required placeholder="e.g., 60">
+                    </div>
+                    <div class="form-group">
+                        <label for="totalMarks">Total Marks</label>
+                        <input type="number" id="totalMarks" name="totalMarks" min="1" required placeholder="e.g., 100">
+                    </div>
+                    <div class="form-group">
+                        <label for="passMarks">Passing Marks</label>
+                        <input type="number" id="passMarks" name="passMarks" min="1" required placeholder="e.g., 50">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="examDate">Exam Date</label>
+                        <input type="date" id="examDate" name="examDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="questionCount">Number of Questions</label>
+                        <input type="number" id="questionCount" name="questionCount" min="1" max="100" required placeholder="e.g., 20">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">Special Instructions</label>
+                    <textarea id="instructions" name="instructions" rows="3" placeholder="Provide specific instructions for students taking this exam"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="examType">Exam Type</label>
+                    <select id="examType" name="examType" required>
+                        <option value="">Select Exam Type</option>
+                        <option value="multiple_choice">Multiple Choice</option>
+                        <option value="true_false">True/False</option>
+                        <option value="short_answer">Short Answer</option>
+                        <option value="essay">Essay</option>
+                        <option value="mixed">Mixed Question Types</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn">Create Exam</button>
+                    <a href="examiner_dashboard.html" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+            <p id="createMessage" style="text-align:center; margin-top:1rem; font-weight:bold;"></p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser) {
+                window.location.href = 'examiner_login.html';
+                return;
+            }
+
+            // Set minimum date to today
+            document.getElementById('examDate').min = new Date().toISOString().split('T')[0];
+
+            // Auto-calculate pass marks
+            document.getElementById('totalMarks').addEventListener('input', function () {
+                const totalMarks = parseInt(this.value);
+                if (totalMarks && !document.getElementById('passMarks').value) {
+                    document.getElementById('passMarks').value = Math.ceil(totalMarks * 0.5);
+                }
+            });
+
+            // Handle exam creation
+            document.getElementById('createExamForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const message = document.getElementById('createMessage');
+
+                const newExam = {
+                    title: formData.get('examTitle'),
+                    subject: formData.get('subject'),
+                    description: formData.get('description'),
+                    duration: parseInt(formData.get('duration')),
+                    totalMarks: parseInt(formData.get('totalMarks')),
+                    passMarks: parseInt(formData.get('passMarks')),
+                    examDate: formData.get('examDate'),
+                    questionCount: parseInt(formData.get('questionCount')),
+                    instructions: formData.get('instructions'),
+                    type: formData.get('examType'),
+                    status: 'active',
+                    createdBy: currentUser.id,
+                    questions: []
+                };
+
+                const examId = storage.addExam(newExam);
+
+                message.style.color = 'green';
+                message.textContent = 'Exam created successfully! Exam ID: ' + examId;
+
+                setTimeout(() => {
+                    window.location.href = 'examiner_dashboard.html';
+                }, 1500);
+            });
+        });
+    </script>
+</body>
+</html>

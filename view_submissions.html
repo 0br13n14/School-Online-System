@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="examiner_dashboard.html">Dashboard</a></li>
+            <li><a href="create_exam.html">Create Exam</a></li>
+            <li><a href="manage_questions.html">Manage Questions</a></li>
+            <li><a href="view_submissions.html" class="active">View Submissions</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Student Submissions</h2>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalSubmissions">0</span>
+                <span>Total Submissions</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="autoGraded">0</span>
+                <span>Auto-graded</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="needReview">0</span>
+                <span>Need Manual Review</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="finalized">0</span>
+                <span>Finalized</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Exam</th>
+                        <th>Submission Date</th>
+                        <th>Auto Score</th>
+                        <th>Final Score</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="submissionsTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem;">
+                            <p>Loading submission data...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadSubmissions() {
+            const appData = storage.getData('appData');
+            const submissions = appData.submissions || [];
+            const students = appData.users.students || [];
+            const exams = appData.exams || [];
+            const results = appData.results || [];
+            const tableBody = document.getElementById('submissionsTableBody');
+
+            // Update stats
+            const total = submissions.length;
+            const auto = submissions.filter(s => s.status === 'graded').length;
+            const needs = submissions.filter(s => s.status === 'needs_review').length;
+            const finalized = submissions.filter(s => s.status === 'finalized').length;
+
+            document.getElementById('totalSubmissions').textContent = total;
+            document.getElementById('autoGraded').textContent = auto;
+            document.getElementById('needReview').textContent = needs;
+            document.getElementById('finalized').textContent = finalized;
+
+            if (submissions.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;">No submissions found.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = submissions.map(submission => {
+                const student = students.find(s => s.id === submission.studentId) || { fullName: 'Unknown' };
+                const exam = exams.find(e => e.id === submission.examId) || { title: submission.examId };
+                const result = results.find(r => r.examId === submission.examId && r.studentId === submission.studentId);
+
+                const autoScore = submission.autoScore ? `${submission.autoScore}%` : (result ? `${result.percentage}%` : 'N/A');
+                const finalScore = result ? `${result.percentage}%` : (submission.finalScore ? `${submission.finalScore}%` : 'Pending');
+                const status = submission.status || (result ? 'graded' : 'submitted');
+                const statusClass = status === 'graded' ? 'status-passed' : status === 'needs_review' ? 'status-review' : status === 'finalized' ? 'status-passed' : 'status-pending';
+
+                return `
+                    <tr>
+                        <td><strong>${submission.studentId}</strong></td>
+                        <td>${student.fullName}</td>
+                        <td>${exam.title}</td>
+                        <td>${submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : '-'}</td>
+                        <td><strong>${autoScore}</strong></td>
+                        <td><strong>${finalScore}</strong></td>
+                        <td><span class="${statusClass}">${status.replace('_',' ')}</span></td>
+                        <td>
+                            <button class="btn" style="padding:0.25rem 0.5rem;" onclick="reviewSubmission('${submission.id}')">Review</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function reviewSubmission(submissionId) {
+            showAlert('Reviewing submission: ' + submissionId, 'info');
+            // In a real application, this would open a detailed review interface
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSubmissions);
+    </script>
+
+    <style>
+        .status-passed { color: #28a745; font-weight: bold; }
+        .status-review { color: #ffc107; font-weight: bold; }
+        .status-pending { color: #6c757d; font-weight: bold; }
+    </style>
+</body>
+</html>

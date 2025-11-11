@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html">Dashboard</a></li>
+            <li><a href="available_exams.html">Available Exams</a></li>
+            <li><a href="exam_results.html" class="active">Results</a></li>
+            <li><a href="student_profile.html">Profile</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Your Examination Results</h2>
+                <p>Track your academic progress and performance</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalExams">0</span>
+                <span>Total Exams</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="passedExams">0</span>
+                <span>Exams Passed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="failedExams">0</span>
+                <span>Exams Failed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="overallAverage">0%</span>
+                <span>Overall Average</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Exam Name</th>
+                        <th>Date Taken</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Grade</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                            <p>Loading your results...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="dashboard" style="margin-top: 2rem;">
+            <div class="card">
+                <h3>Performance Trends</h3>
+                <div id="performanceChart" style="padding: 1rem;">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        <p>Your performance analytics will appear here</p>
+                        <p><small>Complete more exams to see detailed trends</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Recommendations</h3>
+                <div id="recommendations" style="padding: 1rem;">
+                    <div class="recommendation-item">
+                        <h4>Strong Areas</h4>
+                        <p id="strongAreas">Loading...</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>Areas for Improvement</h4>
+                        <p id="weakAreas">Loading...</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>Next Steps</h4>
+                        <p id="nextSteps">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadResults() {
+            const currentUser = storage.getData('currentUser');
+            
+            // Enhanced authentication check
+            if (!currentUser) {
+                console.log('No current user found, redirecting to login');
+                window.location.href = 'student_login.html';
+                return;
+            }
+            
+            // Verify user is actually a student
+            const userType = storage.getUserType(currentUser.id);
+            if (userType !== 'student') {
+                console.log('User is not a student, redirecting to login');
+                storage.setData('currentUser', null); // Clear invalid session
+                window.location.href = 'student_login.html';
+                return;
+            }
+
+            const results = storage.getStudentResults(currentUser.id) || [];
+            const exams = storage.getExams() || [];
+            const tableBody = document.getElementById('resultsTableBody');
+
+            if (results.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                            No exam results found. Complete your first exam to see results here!
+                        </td>
+                    </tr>`;
+                updateStats(0, 0, 0, 0);
+                updateRecommendations([], []);
+                return;
+            }
+
+            tableBody.innerHTML = results.map(result => {
+                const exam = exams.find(e => e.id === result.examId);
+                const grade = getGrade(result.percentage);
+                const status = result.status === 'passed' ? 'Passed' : 'Failed';
+                const statusClass = result.status === 'passed' ? 'status-active' : 'status-inactive';
+
+                return `
+                    <tr>
+                        <td><strong>${exam ? exam.title : 'Unknown Exam'}</strong></td>
+                        <td>${new Date(result.submittedAt).toLocaleDateString()}</td>
+                        <td><span class="score">${result.percentage}%</span></td>
+                        <td><span class="${statusClass}">${status}</span></td>
+                        <td><span class="grade">${grade}</span></td>
+                        <td><a href="result_details.html?resultId=${result.id}" class="btn" style="padding: 0.25rem 0.5rem;">View</a></td>
+                    </tr>`;
+            }).join('');
+
+            const totalExams = results.length;
+            const passedExams = results.filter(r => r.status === 'passed').length;
+            const failedExams = totalExams - passedExams;
+            const avg = totalExams > 0 ? (results.reduce((a, b) => a + parseFloat(b.percentage), 0) / totalExams).toFixed(1) : 0;
+
+            updateStats(totalExams, passedExams, failedExams, avg);
+            updateRecommendations(results.filter(r => r.status === 'passed'), results.filter(r => r.status === 'failed'));
+        }
+
+        function getGrade(percentage) {
+            if (percentage >= 90) return 'A+';
+            if (percentage >= 80) return 'A';
+            if (percentage >= 70) return 'B';
+            if (percentage >= 60) return 'C';
+            if (percentage >= 50) return 'D';
+            return 'F';
+        }
+
+        function updateStats(total, passed, failed, avg) {
+            document.getElementById('totalExams').textContent = total;
+            document.getElementById('passedExams').textContent = passed;
+            document.getElementById('failedExams').textContent = failed;
+            document.getElementById('overallAverage').textContent = avg + '%';
+        }
+
+        function updateRecommendations(passed, failed) {
+            const exams = storage.getExams() || [];
+            const passedSubjects = passed.map(r => {
+                const exam = exams.find(e => e.id === r.examId);
+                return exam ? exam.subject : 'General Knowledge';
+            });
+            
+            const failedSubjects = failed.map(r => {
+                const exam = exams.find(e => e.id === r.examId);
+                return exam ? exam.subject : 'Unspecified Topic';
+            });
+            
+            // Remove duplicates
+            const strongAreas = [...new Set(passedSubjects)];
+            const weakAreas = [...new Set(failedSubjects)];
+            
+            document.getElementById('strongAreas').textContent = strongAreas.length ? strongAreas.join(', ') : 'None yet — keep studying!';
+            document.getElementById('weakAreas').textContent = weakAreas.length ? weakAreas.join(', ') : 'No failed subjects!';
+            document.getElementById('nextSteps').textContent =
+                weakAreas.length
+                    ? 'Focus on your weak subjects to improve your next performance.'
+                    : 'Excellent work! Continue challenging yourself with advanced topics.';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadResults);
+    </script>
+
+    <style>
+        .score { font-weight: bold; color: #00509e; font-size: 1.1rem; }
+        .status-active { color: #28a745; font-weight: bold; }
+        .status-inactive { color: #dc3545; font-weight: bold; }
+        .grade {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #00509e;
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        .recommendation-item {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #00509e;
+        }
+        .recommendation-item h4 {
+            color: #00509e;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</body>
+</html>

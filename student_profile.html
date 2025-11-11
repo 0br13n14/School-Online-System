@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html">Dashboard</a></li>
+            <li><a href="available_exams.html">Available Exams</a></li>
+            <li><a href="exam_results.html">Results</a></li>
+            <li><a href="student_profile.html" class="active">Profile</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Student Profile</h2>
+            </div>
+        </section>
+
+        <div class="dashboard">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h3>Personal Information</h3>
+                <form id="profileForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" name="fullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="studentId">Student ID</label>
+                            <input type="text" id="studentId" name="studentId" readonly style="background: #f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="course">Course Program</label>
+                            <input type="text" id="course" name="course" required placeholder="Enter your course program">
+                        </div>
+                        <div class="form-group">
+                            <label for="semester">Current Semester</label>
+                            <input type="text" id="semester" name="semester" required placeholder="Enter current semester (e.g., Y1S1)">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" style="margin-top: 1.5rem;">
+                        Update Profile
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Academic Summary</h3>
+                <div id="academicSummary" style="padding: 1rem;">
+                    <p>Loading summary...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Account Security</h3>
+                <div style="padding: 1rem;">
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Last Login:</strong><br>
+                        <span id="lastLogin" style="color: #666;">Loading...</span>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Registration Date:</strong><br>
+                        <span id="registrationDate" style="color: #666;">Loading...</span>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <strong>Account Status:</strong><br>
+                        <span style="color: #28a745;">Active</span>
+                    </div>
+                    <a href="change_password.html" class="btn btn-secondary" style="width: 100%; text-align: center;">
+                        Change Password
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser) {
+                window.location.href = 'student_login.html';
+                return;
+            }
+
+            // Populate profile form
+            document.getElementById('fullName').value = currentUser.fullName || '';
+            document.getElementById('studentId').value = currentUser.id || '';
+            document.getElementById('email').value = currentUser.email || '';
+            document.getElementById('phone').value = currentUser.phone || '';
+            document.getElementById('course').value = currentUser.course || '';
+            document.getElementById('semester').value = currentUser.semester || '';
+
+            // Load academic summary
+            const results = storage.getStudentResults(currentUser.id);
+            const totalExams = results.length;
+            const passedExams = results.filter(r => r.status === 'passed').length;
+            const avgScore = totalExams > 0 ? 
+                (results.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / totalExams).toFixed(1) + '%' 
+                : '0%';
+
+            // Calculate GPA based on average score
+            const avgPercentage = totalExams > 0 ? 
+                (results.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / totalExams) : 0;
+            const gpa = calculateGPA(avgPercentage);
+
+            document.getElementById('academicSummary').innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Exams Completed:</span><strong>${totalExams}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Exams Passed:</span><strong style="color: #28a745;">${passedExams}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Average Score:</span><strong style="color: #00509e;">${avgScore}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Estimated GPA:</span><strong style="color: #28a745;">${gpa}</strong>
+                </div>
+            `;
+
+            // Last login and registration date
+            document.getElementById('lastLogin').textContent = new Date().toLocaleString();
+            document.getElementById('registrationDate').textContent = currentUser.registrationDate ? 
+                new Date(currentUser.registrationDate).toLocaleDateString() : 'Not available';
+
+            // Handle profile updates
+            document.getElementById('profileForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fullName = document.getElementById('fullName').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const course = document.getElementById('course').value.trim();
+                const semester = document.getElementById('semester').value.trim();
+
+                // Validation
+                if (!fullName || !email || !course || !semester) {
+                    showAlert('Please fill in all required fields', 'error');
+                    return;
+                }
+
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showAlert('Please enter a valid email address', 'error');
+                    return;
+                }
+
+                // Validate semester format
+                const semesterRegex = /^Y[1-4]S[1-2]$/i;
+                if (!semesterRegex.test(semester.toUpperCase())) {
+                    showAlert('Please enter semester in format: Y1S1, Y2S2, etc.', 'error');
+                    return;
+                }
+
+                // Update user data
+                currentUser.fullName = fullName;
+                currentUser.email = email;
+                currentUser.phone = phone;
+                currentUser.course = course.toUpperCase();
+                currentUser.semester = semester.toUpperCase();
+                
+                if (storage.updateUser(currentUser)) {
+                    showAlert('Profile updated successfully!', 'success');
+                    
+                    // Update form fields with formatted values
+                    document.getElementById('course').value = currentUser.course;
+                    document.getElementById('semester').value = currentUser.semester;
+                } else {
+                    showAlert('Failed to update profile', 'error');
+                }
+            });
+
+            // Auto-format course and semester inputs
+            document.getElementById('course').addEventListener('input', function(e) {
+                const value = e.target.value.toUpperCase();
+                e.target.value = value;
+            });
+
+            document.getElementById('semester').addEventListener('input', function(e) {
+                const value = e.target.value.toUpperCase();
+                e.target.value = value;
+            });
+
+            // GPA calculation function
+            function calculateGPA(percentage) {
+                if (percentage >= 90) return '4.0';
+                if (percentage >= 85) return '3.7';
+                if (percentage >= 80) return '3.3';
+                if (percentage >= 75) return '3.0';
+                if (percentage >= 70) return '2.7';
+                if (percentage >= 65) return '2.3';
+                if (percentage >= 60) return '2.0';
+                if (percentage >= 55) return '1.7';
+                if (percentage >= 50) return '1.3';
+                return '0.0';
+            }
+        });
+    </script>
+</body>
+</html>

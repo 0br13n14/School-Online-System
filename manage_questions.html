@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="examiner_dashboard.html">Dashboard</a></li>
+            <li><a href="create_exam.html">Create Exam</a></li>
+            <li><a href="manage_questions.html" class="active">Manage Questions</a></li>
+            <li><a href="view_submissions.html">View Submissions</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Question Bank Management</h2>
+                <p>Build and organize your examination question repository</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalQuestions">0</span>
+                <span>Total Questions</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="multipleChoice">0</span>
+                <span>Multiple Choice</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="shortAnswer">0</span>
+                <span>Short Answer</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="essayQuestions">0</span>
+                <span>Essay Questions</span>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 1200px; margin-left: auto; margin-right: auto; padding: 0 1rem;">
+            <div>
+                <button class="btn" onclick="showAddQuestionForm()">Add New Question</button>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" id="searchQuestions" placeholder="Search questions..." style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; width: 300px;">
+                <select id="filterSubject" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">All Subjects</option>
+                    <option value="web_design">Web Design</option>
+                    <option value="programming">Programming</option>
+                    <option value="database">Database</option>
+                    <option value="mathematics">Mathematics</option>
+                </select>
+                <select id="filterDifficulty" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="">All Difficulties</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Question ID</th>
+                        <th>Question Text</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Difficulty</th>
+                        <th>Marks</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="questionsTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem;">
+                            <p>Loading question bank...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Question Form -->
+        <div id="addQuestionForm" class="form-container" style="display: none; margin-top: 2rem; max-width: 800px;">
+            <h3>Add New Question</h3>
+            <form id="questionForm">
+                <div class="form-group">
+                    <label for="questionText">Question Text</label>
+                    <textarea id="questionText" name="questionText" rows="3" required placeholder="Enter the question"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="questionSubject">Subject</label>
+                        <select id="questionSubject" name="questionSubject" required>
+                            <option value="">Select Subject</option>
+                            <option value="web_design">Web Design</option>
+                            <option value="programming">Programming</option>
+                            <option value="database">Database Management</option>
+                            <option value="mathematics">Mathematics</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="questionType">Question Type</label>
+                        <select id="questionType" name="questionType" required onchange="toggleQuestionFields()">
+                            <option value="">Select Type</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="true_false">True/False</option>
+                            <option value="short_answer">Short Answer</option>
+                            <option value="essay">Essay</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="questionMarks">Marks</label>
+                        <input type="number" id="questionMarks" name="questionMarks" min="1" max="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="questionDifficulty">Difficulty Level</label>
+                        <select id="questionDifficulty" name="questionDifficulty" required>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div id="multipleChoiceFields" style="display: none;">
+                    <div class="form-group">
+                        <label>Options (Mark the correct answer)</label>
+                        <div id="mcOptionsContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctOption" value="0">
+                                <input type="text" placeholder="Option A" data-option-index="0" style="flex: 1; padding: 0.5rem;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctOption" value="1">
+                                <input type="text" placeholder="Option B" data-option-index="1" style="flex: 1; padding: 0.5rem;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctOption" value="2">
+                                <input type="text" placeholder="Option C" data-option-index="2" style="flex: 1; padding: 0.5rem;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctOption" value="3">
+                                <input type="text" placeholder="Option D" data-option-index="3" style="flex: 1; padding: 0.5rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- True/False Options -->
+                <div id="trueFalseFields" style="display: none;">
+                    <div class="form-group">
+                        <label>Correct Answer</label>
+                        <div style="display: flex; gap: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctAnswer" value="true">
+                                True
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="radio" name="correctAnswer" value="false">
+                                False
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn">Add to Question Bank</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideAddQuestionForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadQuestions() {
+            const questions = storage.getQuestions() || [];
+            const tableBody = document.getElementById('questionsTableBody');
+
+            // Apply search and filters
+            const searchText = document.getElementById('searchQuestions').value.toLowerCase();
+            const filterSubject = document.getElementById('filterSubject').value;
+            const filterDifficulty = document.getElementById('filterDifficulty').value;
+
+            const filtered = questions.filter(q => {
+                return (!filterSubject || q.subject === filterSubject)
+                    && (!filterDifficulty || q.difficulty === filterDifficulty)
+                    && (!searchText || q.text.toLowerCase().includes(searchText));
+            });
+
+            document.getElementById('totalQuestions').textContent = filtered.length;
+            document.getElementById('multipleChoice').textContent = filtered.filter(q => q.type === 'multiple_choice').length;
+            document.getElementById('shortAnswer').textContent = filtered.filter(q => q.type === 'short_answer').length;
+            document.getElementById('essayQuestions').textContent = filtered.filter(q => q.type === 'essay').length;
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No questions found.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = filtered.map(q => {
+                const difficultyColor = q.difficulty === 'easy' ? '#28a745' :
+                                        q.difficulty === 'medium' ? '#ffc107' : '#dc3545';
+                return `
+                    <tr>
+                        <td><strong>${q.id}</strong></td>
+                        <td style="max-width: 300px;">${q.text}</td>
+                        <td>${q.subject.replace('_',' ').toUpperCase()}</td>
+                        <td>${q.type.replace('_',' ').toUpperCase()}</td>
+                        <td><span style="color:${difficultyColor};font-weight:bold;">${q.difficulty.toUpperCase()}</span></td>
+                        <td><strong>${q.marks}</strong></td>
+                        <td>
+                            <div style="display:flex;gap:0.25rem;">
+                                <button class="btn" style="padding:0.25rem 0.5rem;" onclick="editQuestion('${q.id}')">Edit</button>
+                                <button class="btn btn-secondary" style="padding:0.25rem 0.5rem;" onclick="deleteQuestion('${q.id}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showAddQuestionForm() {
+            document.getElementById('addQuestionForm').style.display = 'block';
+        }
+
+        function hideAddQuestionForm() {
+            document.getElementById('addQuestionForm').style.display = 'none';
+            document.getElementById('questionForm').reset();
+            toggleQuestionFields();
+        }
+
+        function toggleQuestionFields() {
+            const type = document.getElementById('questionType').value;
+            document.getElementById('multipleChoiceFields').style.display = type === 'multiple_choice' ? 'block' : 'none';
+            document.getElementById('trueFalseFields').style.display = type === 'true_false' ? 'block' : 'none';
+        }
+
+        function deleteQuestion(id) {
+            if (!confirm('Are you sure you want to delete this question?')) return;
+            const appData = storage.getData('appData');
+            appData.questions = appData.questions.filter(q => q.id !== id);
+            storage.setData('appData', appData);
+            loadQuestions();
+            showAlert('Question deleted successfully!', 'success');
+        }
+
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            const question = {
+                text: formData.get('questionText'),
+                subject: formData.get('questionSubject'),
+                type: formData.get('questionType'),
+                marks: parseInt(formData.get('questionMarks')),
+                difficulty: formData.get('questionDifficulty')
+            };
+
+            if (question.type === 'multiple_choice') {
+                const options = [];
+                document.querySelectorAll('#mcOptionsContainer input[type="text"]').forEach(input => {
+                    options.push(input.value);
+                });
+                question.options = options;
+                const selected = document.querySelector('#mcOptionsContainer input[type="radio"]:checked');
+                question.correctAnswer = selected ? parseInt(selected.value) : null;
+            } else if (question.type === 'true_false') {
+                const selected = document.querySelector('input[name="correctAnswer"]:checked');
+                question.correctAnswer = selected ? selected.value === 'true' : null;
+            }
+
+            storage.addQuestion(question);
+            hideAddQuestionForm();
+            loadQuestions();
+            showAlert('Question added successfully!', 'success');
+        });
+
+        document.getElementById('searchQuestions').addEventListener('keyup', loadQuestions);
+        document.getElementById('filterSubject').addEventListener('change', loadQuestions);
+        document.getElementById('filterDifficulty').addEventListener('change', loadQuestions);
+
+        document.addEventListener('DOMContentLoaded', loadQuestions);
+    </script>
+</body>
+</html>

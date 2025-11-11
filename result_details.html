@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html">Dashboard</a></li>
+            <li><a href="exam_results.html">Results</a></li>
+            <li><a href="result_details.html" class="active">Result Details</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2 id="examTitle">Exam Result Details</h2>
+                <p id="examSubtitle">Loading detailed performance analysis...</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="overallScore">--%</span>
+                <span>Overall Score</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="questionsCorrect">--</span>
+                <span>Questions Correct</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="timeTaken">--</span>
+                <span>Time Taken</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="grade">--</span>
+                <span>Grade</span>
+            </div>
+        </div>
+
+        <div class="card" id="examSummaryCard" style="display: none;">
+            <h3>Performance Summary</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Exam Information:</strong><br>
+                    <span id="subjectInfo">Loading...</span>
+                </div>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Your Performance:</strong><br>
+                    <span id="performanceInfo">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <button class="btn" onclick="window.print()">Print Result</button>
+            <a href="exam_results.html" class="btn btn-secondary" style="margin-left: 1rem;">Back to Results</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadResultDetails);
+
+        function loadResultDetails() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser || currentUser.role !== 'student') {
+                window.location.href = 'student_login.html';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const resultId = urlParams.get('resultId');
+            if (!resultId) {
+                alert('Invalid or missing result ID.');
+                window.location.href = 'exam_results.html';
+                return;
+            }
+
+            const results = storage.getStudentResults(currentUser.id);
+            const result = results.find(r => r.id == resultId);
+            if (!result) {
+                alert('Result not found.');
+                window.location.href = 'exam_results.html';
+                return;
+            }
+
+            const exams = storage.getExams();
+            const exam = exams.find(e => e.id === result.examId) || {};
+
+            // Fill hero section
+            document.getElementById('examTitle').textContent = exam.title || "Exam Result Details";
+            document.getElementById('examSubtitle').textContent = `Detailed performance for ${exam.subject || "this exam"}`;
+
+            // Fill stats
+            document.getElementById('overallScore').textContent = result.percentage + "%";
+            document.getElementById('questionsCorrect').textContent = `${result.score}/${result.totalMarks}`;
+            document.getElementById('timeTaken').textContent = "N/A";
+            document.getElementById('grade').textContent = getGrade(result.percentage);
+
+            // Summary
+            document.getElementById('examSummaryCard').style.display = 'block';
+            document.getElementById('subjectInfo').innerHTML = `
+                Subject: ${exam.subject || 'N/A'}<br>
+                Date: ${new Date(result.submittedAt).toLocaleDateString()}<br>
+                Duration: ${exam.duration || 'N/A'}<br>
+                Total Marks: ${exam.totalMarks || 'N/A'}
+            `;
+            document.getElementById('performanceInfo').innerHTML = `
+                Score: ${result.score || 0}/${exam.totalMarks || 100}<br>
+                Percentage: ${result.percentage}%<br>
+                Grade: ${getGrade(result.percentage)}<br>
+                Status: ${result.status === 'passed' ? 'Passed' : 'Failed'}
+            `;
+        }
+
+        function getGrade(percentage) {
+            if (percentage >= 90) return 'A+';
+            if (percentage >= 80) return 'A';
+            if (percentage >= 70) return 'B';
+            if (percentage >= 60) return 'C';
+            if (percentage >= 50) return 'D';
+            return 'F';
+        }
+    </script>
+
+    <style>
+        .stat-number {
+            font-size: 1.5rem;
+            color: #00509e;
+            font-weight: bold;
+        }
+    </style>
+</body>
+</html>

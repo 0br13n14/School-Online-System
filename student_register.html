@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="student_login.html">Student</a></li>
+            <li><a href="examiner_login.html">Examiner</a></li>
+            <li><a href="admin_login.html">Administrator</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Academic Community</h2>
+            </div>
+        </section>
+
+        <div class="form-container">
+            <h2>Student Registration</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label for="studentId">Student ID</label>
+                    <input type="text" id="studentId" name="studentId" required placeholder="Enter your Student ID">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter your email address">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter your phone number">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Create Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Create a secure password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                </div>
+                <button type="submit" class="btn">Create My Account</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem;">
+                Already have an account? <a href="student_login.html" style="color: #00509e; text-decoration: none; font-weight: bold;">Login here</a>
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('registerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const fullName = document.getElementById('fullName').value.trim();
+                const studentId = document.getElementById('studentId').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                // Validation
+                if (!fullName || !studentId || !email || !course || !semester || !password) {
+                    showAlert('Please fill in all required fields', 'error');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    showAlert('Passwords do not match!', 'error');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showAlert('Password must be at least 6 characters long', 'error');
+                    return;
+                }
+
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showAlert('Please enter a valid email address', 'error');
+                    return;
+                }
+
+                // Check if student ID already exists
+                const appData = storage.getData('appData');
+                const existingStudent = appData.users.students.find(u => u.id === studentId);
+                if (existingStudent) {
+                    showAlert('Student ID already registered!', 'error');
+                    return;
+                }
+
+                const existingEmail = appData.users.students.find(u => u.email === email);
+                if (existingEmail) {
+                    showAlert('Email address already registered!', 'error');
+                    return;
+                }
+
+                const newUser = {
+                    id: studentId,
+                    fullName: fullName,
+                    email: email,
+                    phone: phone,
+                    course: course.toUpperCase(),
+                    password: password,
+                    registrationDate: new Date().toISOString()
+                };
+
+                // Save to localStorage
+                if (storage.addUser(newUser, 'students')) {
+                    storage.setData('currentUser', newUser);
+                    showAlert('Registration successful! Redirecting to dashboard...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'student_dashboard.html';
+                    }, 1500);
+                } else {
+                    showAlert('Registration failed! Please try again.', 'error');
+                }
+            });
+
+            // Add input validation for semester field
+            document.getElementById('semester').addEventListener('input', function(e) {
+                const value = e.target.value.toUpperCase();
+                e.target.value = value;
+            });
+
+            // Add input validation for course field
+            document.getElementById('course').addEventListener('input', function(e) {
+                const value = e.target.value.toUpperCase();
+                e.target.value = value;
+            });
+        });
+    </script>
+</body>
+</html>

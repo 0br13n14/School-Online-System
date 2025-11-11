@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html">Dashboard</a></li>
+            <li><a href="available_exams.html" class="active">Available Exams</a></li>
+            <li><a href="exam_results.html">Results</a></li>
+            <li><a href="student_profile.html">Profile</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Available Examinations</h2>
+                <p>Ready to demonstrate your knowledge and skills</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalExams">0</span>
+                <span>Total Available</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="pendingExams">0</span>
+                <span>Pending Completion</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="completedExams">0</span>
+                <span>Completed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="averageScore">0%</span>
+                <span>Average Score</span>
+            </div>
+        </div>
+
+        <div id="examsContainer">
+            <div style="text-align: center; padding: 2rem;">
+                <p>Loading available exams...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadExamData() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser) {
+                window.location.href = 'student_login.html';
+                return;
+            }
+
+            const exams = storage.getExams();
+            const results = storage.getStudentResults(currentUser.id);
+            const availableExams = exams.filter(exam =>
+                !results.some(result => result.examId === exam.id) && exam.status === 'active'
+            );
+
+            // Update stats
+            document.getElementById('totalExams').textContent = availableExams.length;
+            document.getElementById('pendingExams').textContent = availableExams.length;
+            document.getElementById('completedExams').textContent = results.length;
+            document.getElementById('averageScore').textContent =
+                results.length > 0
+                    ? (results.reduce((sum, r) => sum + parseFloat(r.percentage), 0) / results.length).toFixed(1) + '%'
+                    : '0%';
+
+            // Group exams by subject
+            const examsBySubject = {};
+            availableExams.forEach(exam => {
+                if (!examsBySubject[exam.subject]) {
+                    examsBySubject[exam.subject] = [];
+                }
+                examsBySubject[exam.subject].push(exam);
+            });
+
+            // Display exams by subject
+            const container = document.getElementById('examsContainer');
+            
+            if (availableExams.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <h3>No Available Exams</h3>
+                        <p>There are no exams available at the moment. Please check back later.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = Object.entries(examsBySubject).map(([subject, subjectExams]) => `
+                <div class="card" style="margin: 1rem auto; max-width: 1200px;">
+                    <h3>${subject.replace('_', ' ').toUpperCase()}</h3>
+                    <div class="exam-list">
+                        ${subjectExams.map(exam => `
+                            <div class="exam-item">
+                                <h4>${exam.title}</h4>
+                                <p><strong>Description:</strong> ${exam.description || 'No description available'}</p>
+                                <p><strong>Duration:</strong> ${exam.duration} minutes • <strong>Marks:</strong> ${exam.totalMarks}</p>
+                                <p><strong>Instructions:</strong> ${exam.instructions || 'Follow the exam guidelines'}</p>
+                                <a href="take_exam.html?examId=${exam.id}" class="btn">Start Exam</a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', loadExamData);
+    </script>
+
+    <style>
+        .exam-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .exam-item {
+            padding: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .exam-item:hover {
+            border-color: #00509e;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .exam-item h4 {
+            color: #00509e;
+            margin-bottom: 0.5rem;
+        }
+
+        .exam-item p {
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="student_dashboard.html">Dashboard</a></li>
+            <li><a href="take_exam.html" class="active">Current Exam</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2 id="examTitle">Loading Exam...</h2>
+                <p id="examDesc">Please wait while we load your exam</p>
+            </div>
+        </section>
+
+        <div class="exam-container" id="examContainer" style="display:none;">
+            <div class="exam-header">
+                <div>
+                    <h3 id="examName"></h3>
+                    <p style="color: #666; margin-top: 0.5rem;">Total Marks: <span id="totalMarks"></span> • Passing: <span id="passingScore"></span>%</p>
+                </div>
+                <div class="timer">
+                    Time Remaining: <span id="timer">--:--</span>
+                </div>
+            </div>
+
+            <div class="exam-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">Question 0 of 0</div>
+            </div>
+
+            <div id="questionsContainer"></div>
+
+            <div class="exam-navigation">
+                <button class="btn btn-secondary" id="prevBtn">Previous Question</button>
+                <div>
+                    <button class="btn btn-success" id="submitBtn">Submit Exam</button>
+                </div>
+                <button class="btn" id="nextBtn">Next Question</button>
+            </div>
+
+            <div class="exam-instructions">
+                <h4>Exam Instructions</h4>
+                <ul>
+                    <li>You have limited time to complete this exam</li>
+                    <li>Answer all questions before submitting</li>
+                    <li>Each question carries equal marks</li>
+                    <li>You cannot go back after submitting</li>
+                    <li>Ensure stable internet connection throughout</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let exam = null;
+        let currentQuestion = 0;
+        let answers = [];
+        let timerInterval = null;
+
+        function loadExam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const examId = urlParams.get('examId');
+            const exams = storage.getExams() || [];
+            exam = exams.find(e => e.id === examId);
+
+            if(!exam){
+                alert('Exam not found');
+                window.location.href='available_exams.html';
+                return;
+            }
+
+            document.getElementById('examTitle').textContent = exam.title;
+            document.getElementById('examDesc').textContent = exam.description || '';
+            document.getElementById('examContainer').style.display = 'block';
+            document.getElementById('examName').textContent = exam.title;
+            document.getElementById('totalMarks').textContent = exam.totalMarks;
+            document.getElementById('passingScore').textContent = exam.passMarks;
+
+            answers = new Array(exam.questions.length).fill(null);
+            renderQuestion();
+            startTimer(exam.duration);
+        }
+
+        function renderQuestion() {
+            const q = exam.questions[currentQuestion];
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = `
+                <div class="question">
+                    <div class="question-number">Question ${currentQuestion+1}</div>
+                    <p>${q.text}</p>
+                    <div class="options">
+                        ${q.options.map((opt,i)=>`
+                            <div class="option ${answers[currentQuestion]===i?'selected':''}" data-index="${i}">
+                                <span class="option-letter">${String.fromCharCode(65+i)}</span>
+                                <span class="option-text">${opt}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('.option').forEach(option=>{
+                option.addEventListener('click', ()=>{
+                    answers[currentQuestion] = parseInt(option.dataset.index);
+                    document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+                    option.classList.add('selected');
+                });
+            });
+
+            updateProgress();
+        }
+
+        function updateProgress() {
+            document.getElementById('progressFill').style.width = ((currentQuestion+1)/exam.questions.length*100)+'%';
+            document.getElementById('progressText').textContent = `Question ${currentQuestion+1} of ${exam.questions.length}`;
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', ()=>{
+            if(currentQuestion<exam.questions.length-1){
+                currentQuestion++;
+                renderQuestion();
+            }
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', ()=>{
+            if(currentQuestion>0){
+                currentQuestion--;
+                renderQuestion();
+            }
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', submitExam);
+
+        function submitExam() {
+            if(!confirm('Are you sure you want to submit the exam?')) return;
+
+            const currentUser = storage.getData('currentUser');
+            
+            const submission = {
+                studentId: currentUser.id,
+                examId: exam.id,
+                answers: answers
+            };
+
+            const result = storage.addSubmission(submission);
+            
+            showAlert('Exam submitted successfully! Your score: ' + result.percentage + '%', 'success');
+            setTimeout(() => {
+                window.location.href = 'exam_results.html';
+            }, 2000);
+        }
+
+        function startTimer(minutes){
+            let remaining = minutes*60;
+            const timerEl = document.getElementById('timer');
+            timerInterval = setInterval(()=>{
+                const m = Math.floor(remaining/60);
+                const s = remaining%60;
+                timerEl.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                remaining--;
+                if(remaining<0){
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+            },1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadExam);
+    </script>
+
+    <style>
+        .exam-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin: 2rem 0;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f4f4f4;
+        }
+
+        .timer {
+            background: #00509e;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .exam-progress {
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: bold;
+            color: #00509e;
+        }
+
+        .question {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #fafbfc;
+        }
+
+        .question-number {
+            font-weight: bold;
+            color: #00509e;
+            margin-bottom: 0.5rem;
+        }
+
+        .options {
+            margin: 1rem 0;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option:hover {
+            background-color: #e3f2fd;
+            border-color: #00509e;
+        }
+
+        .option.selected {
+            background: #00509e;
+            color: white;
+            border-color: #00509e;
+        }
+
+        .option-letter {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #dee2e6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .option.selected .option-letter {
+            background: white;
+            color: #00509e;
+            border-color: white;
+        }
+
+        .exam-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid #f4f4f4;
+        }
+
+        .exam-instructions {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+    </style>
+</body>
+</html>

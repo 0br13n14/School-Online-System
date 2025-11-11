@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>LIMKOKWING UNIVERSITY OF CREATIVE TECHNOLOGY</h1>
+            <p>LESOTHO</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="admin_dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="manage_users.html">Manage Users</a></li>
+            <li><a href="manage_subjects.html">Manage Subjects</a></li>
+            <li><a href="view_reports.html">View Reports</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-hero">
+            <div class="page-hero-content">
+                <h2>Administrator Dashboard</h2>
+                <p>Comprehensive system management and oversight</p>
+            </div>
+        </section>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalStudents">0</span>
+                <span>Total Students</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalExaminers">0</span>
+                <span>Examiners</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="activeExams">0</span>
+                <span>Active Exams</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalSubmissions">0</span>
+                <span>Submissions</span>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>System Overview</h3>
+                <div id="systemOverview">
+                    <p>Loading system information...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Quick Statistics</h3>
+                <div id="quickStats">
+                    <p>Loading statistics...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Administrative Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="manage_users.html" class="btn">Manage Users</a>
+                    <a href="manage_subjects.html" class="btn btn-secondary">Manage Subjects</a>
+                    <a href="view_reports.html" class="btn btn-secondary">View Reports</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin: 2rem auto; max-width: 1200px;">
+            <h3 style="color: #00509e; margin-bottom: 1rem; padding: 0 1rem;">Recent User Registrations</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Registration Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="recentUsersTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Loading recent registrations...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Limkokwing University of Creative Technology, Lesotho</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        function loadAdminData() {
+            const currentUser = storage.getData('currentUser');
+            if (!currentUser) {
+                window.location.href = 'admin_login.html';
+                return;
+            }
+
+            const stats = storage.getSystemStats();
+            const appData = storage.getData('appData');
+
+            // Update stats with real data
+            document.getElementById('totalStudents').textContent = stats.totalStudents;
+            document.getElementById('totalExaminers').textContent = stats.totalExaminers;
+            document.getElementById('activeExams').textContent = stats.activeExams;
+            document.getElementById('totalSubmissions').textContent = stats.totalSubmissions;
+
+            // Update system overview
+            const systemOverview = document.getElementById('systemOverview');
+            systemOverview.innerHTML = `
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>System Status:</strong> All Systems Operational
+                </div>
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>Last Backup:</strong> ${new Date().toLocaleDateString()}
+                </div>
+                <div style="padding: 0.5rem 0;">
+                    <strong>Total Questions:</strong> ${stats.totalQuestions}
+                </div>
+            `;
+
+            // Update quick stats
+            const quickStats = document.getElementById('quickStats');
+            quickStats.innerHTML = `
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>Total Exams:</strong> ${stats.totalExams}
+                </div>
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>Pass Rate:</strong> ${stats.passRate}%
+                </div>
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <strong>Total Subjects:</strong> ${stats.totalSubjects}
+                </div>
+                <div style="padding: 0.5rem 0;">
+                    <strong>Total Results:</strong> ${stats.totalResults}
+                </div>
+            `;
+
+            // Update recent users table
+            const recentUsersTable = document.getElementById('recentUsersTable');
+            const allUsers = [
+                ...appData.users.students.map(u => ({...u, role: 'Student'})),
+                ...appData.users.examiners.map(u => ({...u, role: 'Examiner'})),
+                ...appData.users.admins.map(u => ({...u, role: 'Administrator'}))
+            ].slice(0, 5);
+
+            if (allUsers.length > 0) {
+                recentUsersTable.innerHTML = allUsers.map(user => `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.fullName}</td>
+                        <td>${user.role}</td>
+                        <td>${new Date().toLocaleDateString()}</td>
+                        <td>Active</td>
+                    </tr>
+                `).join('');
+            } else {
+                recentUsersTable.innerHTML = '<tr><td colspan="5" style="text-align: center;">No users found</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAdminData);
+    </script>
+</body>
+</html>
